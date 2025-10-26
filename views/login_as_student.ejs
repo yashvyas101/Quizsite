@@ -12,15 +12,15 @@
     <div class="card-body">
       <h4 class="card-title mb-3">student Login</h4>
 
-      <form id="studentLoginForm" autocomplete="off">
+      <form id="studentLoginForm" autocomplete="off" method="POST" action="/student_login">
         <div class="mb-3">
           <label class="form-label">User ID</label>
-          <input id="userId" class="form-control" required />
+          <input id="userId" name="userId" class="form-control" required />
         </div>
 
         <div class="mb-3">
           <label class="form-label">Password</label>
-          <input id="password" type="password" class="form-control" required />
+          <input id="password" name="password" type="password" class="form-control" required />
         </div>
 
         <div class="d-grid gap-2">
@@ -32,64 +32,10 @@
     </div>
   </div>
 
-  <script>
-    // Utility: hex encoding of ArrayBuffer
-    function bufToHex(buffer) {
-      const bytes = new Uint8Array(buffer);
-      const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-      return hex;
-    }
-
-    // Hash string with SHA-256 (Web Crypto)
-    async function sha256Hex(message) {
-      const enc = new TextEncoder();
-      const data = enc.encode(message);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      return bufToHex(hashBuffer);
-    }
-
-    // On form submit: hash password, send PATCH
-    document.getElementById('teacherLoginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = 'Processing…';
-      const userId = document.getElementById('userId').value.trim();
-      const password = document.getElementById('password').value;
-
-      if (!userId || !password) {
-        statusEl.textContent = 'Please provide both User ID and Password.';
-        return;
-      }
-
-      try {
-        // Client-side hash (SHA-256 hex)
-        const hashed = await sha256Hex(password);
-
-        // Payload — note: password is hashed on client before sending
-        const payload = { userId, password: hashed, timestamp: new Date().toISOString() };
-
-        // Send PATCH request
-        const res = await fetch('/api/teacher/login', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `Server returned ${res.status}`);
-        }
-
-        const json = await res.json();
-        statusEl.classList.remove('text-danger');
-        statusEl.classList.add('text-success');
-        statusEl.textContent = json.message || 'Success — teacher data sent.';
-      } catch (err) {
-        statusEl.classList.remove('text-success');
-        statusEl.classList.add('text-danger');
-        statusEl.textContent = 'Error: ' + (err.message || err);
-      }
-    });
-  </script>
+  <% if (typeof error !== 'undefined') { %>
+<script>
+  alert("<%= error %>");
+</script>
+<% } %>
 </body>
 </html>
