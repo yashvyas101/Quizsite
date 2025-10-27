@@ -140,19 +140,18 @@
       Manage quizzes and monitor student progress here.
     </p>
   </aside>
-
   <!-- Main Content -->
   <main class="main-content">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2 class="fw-bold text-primary">
-          Welcome, <span id="teacherName"><%=name  %></span> 👋
+          Welcome, <span id="teacherName"><%=name  %></span> 
         </h2>
         <p class="text-muted mb-0">Teacher ID: <span id="teacherId"><%= userId %></span></p>
       </div>
       <div class="profile-info">
-        <img src="https://i.pravatar.cc/100?img=15" alt="Teacher Profile">
+        <img src="https://as1.ftcdn.net/v2/jpg/00/64/67/52/1000_F_64675209_7ve2XQANuzuHjMZXP3aIYIpsDKEbF5dD.jpg" alt="Teacher Profile">
         <form method="get" action="/logout">
           <button class="btn btn-outline-danger btn-sm">
             <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -176,18 +175,35 @@
     <div id="quizList">
       <!-- Quiz 1 -->
       <div class="quiz-card">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="fw-bold mb-1">Quiz 1: HTML Basics</h5>
-            <p class="text-muted mb-0">Students Attempted: <strong>5</strong></p>
-          </div>
-          <div>
-            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#quiz1students">
-              <i class="bi bi-people-fill me-1"></i>View Students
-            </button>
-            <button class="remove-btn btn-sm ms-2"><i class="bi bi-trash-fill me-1"></i>Remove</button>
-          </div>
-        </div>
+        <% if (quizzes.length === 0) { %>
+          <p class="text-muted">No quizzes created yet.</p>
+        <% } else { %>
+          <% quizzes.forEach((quiz, index) => { %>
+            <div class="quiz-card mb-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="fw-bold mb-1">
+                    Quiz <%= index + 1 %>: <%= quiz.topic %>
+                  </h5>
+                  <p class="text-muted mb-0">
+                    Created on: <%= new Date(quiz.creation_time).toLocaleString() %>
+                  </p>
+                </div>
+                <div>
+                  <button class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-people-fill me-1"></i>View Students
+                  </button>
+                  <form method="POST" action="/delete_quiz/<%= quiz.quiz_id %>?_method=DELETE" style="display:inline;">
+                    <input type="hidden" name="userId" value="<%= userId %>">
+                    <button class="btn btn-outline-danger btn-sm ms-2">
+                      <i class="bi bi-trash-fill me-1"></i>Remove
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } %>
 
         <div id="quiz1students" class="collapse collapse-list">
           <div class="student-item"><i class="bi bi-person-fill me-2"></i>Yash Vyas — <span class="text-success fw-semibold">85 / 100</span></div>
@@ -198,50 +214,7 @@
         </div>
       </div>
 
-      <!-- Quiz 2 -->
-      <div class="quiz-card">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="fw-bold mb-1">Quiz 2: CSS Fundamentals</h5>
-            <p class="text-muted mb-0">Students Attempted: <strong>4</strong></p>
-          </div>
-          <div>
-            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#quiz2students">
-              <i class="bi bi-people-fill me-1"></i>View Students
-            </button>
-            <button class="remove-btn btn-sm ms-2"><i class="bi bi-trash-fill me-1"></i>Remove</button>
-          </div>
-        </div>
-
-        <div id="quiz2students" class="collapse collapse-list">
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Simran Kaur — <span class="text-success fw-semibold">82 / 100</span></div>
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Manish Sharma — <span class="text-success fw-semibold">79 / 100</span></div>
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Rohit Jain — <span class="text-success fw-semibold">87 / 100</span></div>
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Priya Nair — <span class="text-success fw-semibold">91 / 100</span></div>
-        </div>
-      </div>
-
-      <!-- Quiz 3 -->
-      <div class="quiz-card">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="fw-bold mb-1">Quiz 3: JavaScript Basics</h5>
-            <p class="text-muted mb-0">Students Attempted: <strong>3</strong></p>
-          </div>
-          <div>
-            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#quiz3students">
-              <i class="bi bi-people-fill me-1"></i>View Students
-            </button>
-            <button class="remove-btn btn-sm ms-2"><i class="bi bi-trash-fill me-1"></i>Remove</button>
-          </div>
-        </div>
-
-        <div id="quiz3students" class="collapse collapse-list">
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Aditi Rao — <span class="text-success fw-semibold">84 / 100</span></div>
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Mohit Agarwal — <span class="text-success fw-semibold">76 / 100</span></div>
-          <div class="student-item"><i class="bi bi-person-fill me-2"></i>Karan Thakur — <span class="text-success fw-semibold">89 / 100</span></div>
-        </div>
-      </div>
+      
     </div>
   </main>
 

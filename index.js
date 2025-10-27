@@ -85,7 +85,6 @@ app.post("/teacher_login", (req,res) => {
 app.post("/student_login", (req,res) => {
     const {userId, password} = req.body;
     const q = "SELECT * FROM student_login WHERE user_id = ?";
-    
     connection.query(q, [userId], (err, results) => {
         if(err) {
             console.log(err);
@@ -105,35 +104,44 @@ app.post("/student_login", (req,res) => {
 
 
 //dashboard routes fo teacher
-app.get("/teacher_login/:userId",(req,res)=>{
+app.get("/teacher_login/:userId",(req,res)=>
+{
     const userId = req.params.userId;
     const q = "SELECT * FROM teacher_login WHERE user_id = ?";
+    const q_quizzes = "SELECT * FROM quizzes WHERE user_id = ?";
     connection.query(q, [userId], (err, results) => {
         if(err) {
             console.log(err);
             return res.render("login_as_teacher.ejs", { error: "Database error!" });
         }
         let name=results[0].teacher_name;
-        res.render("teacher_login.ejs",{ userId ,name});
-
+        //TO GET QUIZZES FORM DB
+        connection.query(q_quizzes, [userId], (err, quizResults) => {
+            if (err) {
+                console.error("❌ Error fetching quizzes:", err);
+                return res.status(500).send("Internal Server Error");
+            }
+            res.render("teacher_login.ejs",{ userId ,name, quizzes:quizResults});
+        });
     });
 });
 
-
-//dashboard routes fo student
-app.get("/student_login/:userId",(req,res)=>{
-    const userId = req.params.userId;
-    const q = "SELECT * FROM student_login WHERE user_id = ?";
-    connection.query(q, [userId], (err, results) => {
-        if(err) {
-            console.log(err);
-            return res.render("login_as_student.ejs", { error: "Database error!" });
+//DELETE QUIZ ROUTE  /delete_quiz/<%= quiz.quiz_id %>?_method=DELETE
+app.delete("/delete_quiz/:quizId",(req,res)=>{
+    const { quizId } = req.params;
+    const {userId} =req.body; // Get userId from query parameters
+    const deleteQuizQuery = "DELETE FROM quizzes WHERE quiz_id = ?";
+    connection.query(deleteQuizQuery, [quizId], (err, result) => {
+        if (err) {
+            console.error("❌ Error deleting quiz:", err);
+            return res.status(500).send("Internal Server Error");
         }
-        let name=results[0].student_name;
-        res.render("student_login.ejs",{ userId ,name});
-
+        console.log("✅ Quiz deleted successfully:", quizId);
     });
+    res.redirect(`/teacher_login/${userId}`);
 });
+
+
 
 
 //adding new quiz route
@@ -197,6 +205,22 @@ app.post("/add_quiz_to_DB",(req,res)=>{
 
 
 
+
+
+//dashboard routes fo student
+app.get("/student_login/:userId",(req,res)=>{
+    const userId = req.params.userId;
+    const q = "SELECT * FROM student_login WHERE user_id = ?";
+    connection.query(q, [userId], (err, results) => {
+        if(err) {
+            console.log(err);
+            return res.render("login_as_student.ejs", { error: "Database error!" });
+        }
+        let name=results[0].student_name;
+        res.render("student_login.ejs",{ userId ,name});
+
+    });
+});
 
 
 
