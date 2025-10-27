@@ -109,6 +109,7 @@ app.get("/teacher_login/:userId",(req,res)=>
     const userId = req.params.userId;
     const q = "SELECT * FROM teacher_login WHERE user_id = ?";
     const q_quizzes = "SELECT * FROM quizzes WHERE user_id = ?";
+    const q_quiz_count=`SELECT COUNT(*) AS quiz_count FROM quizzes WHERE user_id = ?;`
     connection.query(q, [userId], (err, results) => {
         if(err) {
             console.log(err);
@@ -121,7 +122,17 @@ app.get("/teacher_login/:userId",(req,res)=>
                 console.error("❌ Error fetching quizzes:", err);
                 return res.status(500).send("Internal Server Error");
             }
-            res.render("teacher_login.ejs",{ userId ,name, quizzes:quizResults});
+            connection.query(q_quiz_count, [userId], (err, quiz_count) =>
+            {
+                if (err) {
+                    console.error("❌ Error fetching quiz count:", err);
+                    return res.status(500).send("Internal Server Error");
+                }
+                quiz_count
+                res.render("teacher_login.ejs",{ userId ,name, quizzes:quizResults, quiz_count: quiz_count[0].quiz_count  });
+            });
+
+            
         });
     });
 });
