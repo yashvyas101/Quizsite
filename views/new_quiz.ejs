@@ -1,0 +1,151 @@
+<!-- NEW_QUIZ.EJS -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f8fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #1f2937;
+        }
+
+        form {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="datetime-local"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #cbd5e1;
+            font-size: 16px;
+        }
+
+        input[type="text"]:focus,
+        input[type="datetime-local"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 5px rgba(59,130,246,0.3);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 25px 0;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #3b82f6;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+        }
+
+        h3 {
+            margin-top: 20px;
+            color: #111827;
+        }
+
+        /* Small screens */
+        @media (max-width: 600px) {
+            form {
+                padding: 20px;
+            }
+
+            input[type="text"],
+            input[type="datetime-local"],
+            input[type="number"] {
+                font-size: 14px;
+            }
+
+            button {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Create a New Quiz</h1>
+
+    <form action="/add_quiz_to_DB" method="POST">
+        <!-- Quiz Topic -->
+        <div>
+            <label for="topic">Quiz Topic:</label>
+            <input type="text" id="topic" name="topic" placeholder="Enter Quiz Topic" required>
+            <input type="hidden" name="userId" value="<%= userId %>">
+
+        </div>
+
+
+        <hr>
+
+        <!-- Questions -->
+        <% for(let i=1; i<=10; i++) { %>
+            <div>
+                
+                <h3>Question <%= i %></h3>
+                <label for="question<%= i %>">Question Text:</label>
+                <input type="text" id="question<%= i %>" name="questions[<%= i %>][text]" placeholder="Enter question text" required>
+                <label>Option A:</label>
+                <input type="text" name="questions[<%= i %>][optionA]" placeholder="Option A" required>
+
+                <label>Option B:</label>
+                <input type="text" name="questions[<%= i %>][optionB]" placeholder="Option B" required>
+
+                <label>Option C:</label>
+                <input type="text" name="questions[<%= i %>][optionC]" placeholder="Option C" required>
+
+                <label>Option D:</label>
+                <input type="text" name="questions[<%= i %>][optionD]" placeholder="Option D" required>
+
+                <label for="correct<%= i %>">Correct Answer (A/B/C/D):</label>
+                <input type="text" id="correct<%= i %>" name="questions[<%= i %>][correct]" maxlength="1" placeholder="Enter correct option" required>
+
+                <label for="marks<%= i %>">Marks:</label>
+                <input type="number" id="marks<%= i %>" name="questions[<%= i %>][marks]" value="1" readonly>
+            </div>
+            <hr>
+        <% } %>
+
+        <button type="submit">Create Quiz</button>
+    </form>
+</body>
+</html>

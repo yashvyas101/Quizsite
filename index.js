@@ -69,7 +69,7 @@ app.post("/teacher_login", (req,res) => {
 
         if(results.length > 0 && results[0].password === password) {
             // Successful login
-            res.render("teacher_login.ejs", { userId });
+            res.redirect(`/teacher_login/${userId}`);
         } else {
             // Failed login — send error to template
             res.render("login_as_teacher.ejs", { error: "❌ Invalid User ID or Password" });
@@ -94,12 +94,115 @@ app.post("/student_login", (req,res) => {
 
         if(results.length > 0 && results[0].password === password) {
             // Successful login
-            res.render("student_login.ejs", { userId });
+            res.redirect(`/student_login/${userId}`);
         } else {
             // Failed login — send error to template
             res.render("login_as_student.ejs", { error: "❌ Invalid User ID or Password" });
         }
     });
+});
+
+
+
+//dashboard routes fo teacher
+app.get("/teacher_login/:userId",(req,res)=>{
+    const userId = req.params.userId;
+    const q = "SELECT * FROM teacher_login WHERE user_id = ?";
+    connection.query(q, [userId], (err, results) => {
+        if(err) {
+            console.log(err);
+            return res.render("login_as_teacher.ejs", { error: "Database error!" });
+        }
+        let name=results[0].teacher_name;
+        res.render("teacher_login.ejs",{ userId ,name});
+
+    });
+});
+
+
+//dashboard routes fo student
+app.get("/student_login/:userId",(req,res)=>{
+    const userId = req.params.userId;
+    const q = "SELECT * FROM student_login WHERE user_id = ?";
+    connection.query(q, [userId], (err, results) => {
+        if(err) {
+            console.log(err);
+            return res.render("login_as_student.ejs", { error: "Database error!" });
+        }
+        let name=results[0].student_name;
+        res.render("student_login.ejs",{ userId ,name});
+
+    });
+});
+
+
+//adding new quiz route
+app.get("/teacher_login/:userId/new", (req, res) => {
+  const { userId } = req.params;
+  res.render("new_quiz.ejs", { userId });
+});
+//adding quiz to database route
+app.post("/add_quiz_to_DB",(req,res)=>{
+    // console.log(req.query);
+    console.log("Incoming quiz data:", req.body);
+
+    const quiz_id = uuid(); 
+    const { topic, questions,userId } = req.body;
+    const creation_time = new Date();
+    const insertQuery = "INSERT INTO quizzes (quiz_id, user_id, topic, creation_time) VALUES (?, ?, ?, ?)";
+    connection.query(insertQuery, [quiz_id, userId, topic, creation_time], (err, results) => {
+        if (err) {  
+            console.error("Error inserting quiz:", err);
+            return res.status(500).send("Internal Server Error");
+        }
+        console.log("Quiz added successfully with ID:", quiz_id);
+    });
+
+    for(let i=1;i<=10;i++)
+    {
+        // Each question comes from EJS form as `questions[i][...]`
+        const qData = questions[i];
+        if (!qData) continue; // Skip if question missing
+
+        const quiz_questions = uuid();
+        const question_text = qData.text;
+        const optionA = qData.optionA;
+        const optionB = qData.optionB;
+        const optionC = qData.optionC;
+        const optionD = qData.optionD;
+        const correct_answer = qData.correct;
+        const marks = qData.marks;
+
+        const qToInsertIntoQuestionTable = `INSERT INTO quiz_questions 
+        (quiz_questions,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks)
+        VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)`;
+        
+        // ✅ Use your for-loop to insert each question
+        connection.query(
+            qToInsertIntoQuestionTable,
+            [quiz_questions,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks],
+            (err, result) => {
+                if (err) {
+                    console.error(`❌ Error inserting question ${i}:`, err);
+                } else {
+                    console.log(`✅ Question ${i} inserted successfully`);
+                }
+            }
+        );
+        console.log("Quiz added successfully with ID:", quiz_id);
+        
+    }
+    res.redirect(`/teacher_login/${userId}`);
+});
+
+
+
+
+
+
+//logout route
+app.get("/logout",(req,res)=>{
+    res.redirect("/");
 });
 
 
