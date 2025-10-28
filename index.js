@@ -54,7 +54,6 @@ app.get("/teacher_login",(req,res)=>{
 });
   
 
-
 //login cheack routes
 //of teacher
 app.post("/teacher_login", (req,res) => {
@@ -99,8 +98,8 @@ app.post("/student_login", (req,res) => {
 });
 
 
-
-//dashboard routes fo teacher
+//dashboard routes 
+// of teacher
 app.get("/teacher_login/:userId",(req,res)=>
 {
     const userId = req.params.userId;
@@ -108,7 +107,7 @@ app.get("/teacher_login/:userId",(req,res)=>
     const q_quizzes = "SELECT * FROM quizzes WHERE user_id = ?";
     const q_quiz_count=`SELECT COUNT(*) AS quiz_count FROM quizzes WHERE user_id = ?;`
     const quiz_count_q=`SELECT COUNT(*) AS students_count FROM student_login ;`
-
+    //TO GET TEACHER NAME FORM DB
     connection.query(q, [userId], (err, results) => {
         if(err) {
             console.log(err);
@@ -121,12 +120,14 @@ app.get("/teacher_login/:userId",(req,res)=>
                 console.error("❌ Error fetching quizzes:", err);
                 return res.status(500).send("Internal Server Error");
             }
+            //count of quizzes
             connection.query(q_quiz_count, [userId], (err, quiz_count) =>
             {
                 if (err) {
                     console.error("❌ Error fetching quiz count:", err);
                     return res.status(500).send("Internal Server Error");
                 }
+                //count of students
                 connection.query(quiz_count_q, (err, students_count) =>
                 {
                     if (err) {
@@ -139,23 +140,6 @@ app.get("/teacher_login/:userId",(req,res)=>
 
             
         });
-    });
-});
-
-
-
-//dashboard routes fo student
-app.get("/student_login/:userId",(req,res)=>{
-    const userId = req.params.userId;
-    const q = "SELECT * FROM student_login WHERE user_id = ?";
-    connection.query(q, [userId], (err, results) => {
-        if(err) {
-            console.log(err);
-            return res.render("login_as_student.ejs", { error: "Database error!" });
-        }
-        let name=results[0].student_name;
-        res.render("student_login.ejs",{ userId ,name});
-
     });
 });
 
@@ -269,8 +253,6 @@ app.post("/add_quiz_to_DB",(req,res)=>{
     res.redirect(`/teacher_login/${userId}`);
 });
 
-
-
 //DELETE QUIZ ROUTE  /delete_quiz/<%= quiz.quiz_id %>?_method=DELETE
 app.delete("/delete_quiz/:quizId",(req,res)=>{
     const { quizId } = req.params;
@@ -305,6 +287,123 @@ app.delete("/delete_quiz/:quizId",(req,res)=>{
 });
 
 
+
+
+
+//dashboard routes 
+// of student
+app.get("/student_login/:userId",(req,res)=>
+{
+    const userId = req.params.userId;
+    const q = "SELECT * FROM student_login WHERE user_id = ?";
+    const getAllQuizzesQuery = "SELECT * FROM quizzes";
+    
+    //to get student name from db
+    connection.query(q, [userId], (err, results) =>
+    {
+        if(err) 
+        {
+            console.log(err);
+            return res.render("login_as_student.ejs", { error: "Database error!" });
+        }
+        let name=results[0].student_name;
+        //to get all quizzes from db
+        connection.query(getAllQuizzesQuery, (err2, quizResults) => 
+        {
+            if (err2)
+            {
+                console.error("❌ Error fetching quizzes:", err2);
+                return res.status(500).send("Internal Server Error");
+            }
+            const completedQuizzes = [];
+            const pendingQuizzes = [];
+
+            if (quizResults.length === 0) 
+            {
+                return res.render("student_login.ejs", {
+                userId,
+                name,
+                completedQuizzes,
+                pendingQuizzes,
+                });
+            }
+
+            let processed = 0; // To track how many queries finished
+
+            // Check each quiz for attended or not 
+            for(const quiz of quizResults) 
+            {
+                const quizId = quiz.quiz_id;
+                const topic=quiz.topic;
+                const assigned_teacher=quiz.user_id;
+                const creation_time=quiz.creation_time;
+                // const checkQuery = "SELECT attend, total_marks FROM ${quizId} WHERE user_id = ?";
+                const checkQuery = `SELECT attend, total_marks FROM \`${quizId}\` WHERE user_id = ?`;
+
+                connection.query(checkQuery, [userId], (err3, rows) =>
+                {
+                    if (err3)
+                    {
+                        console.error(`❌ Error checking attendance for quiz ${quizId}:`, err3);
+                    }
+                    else if(rows.length>0)
+                    {
+                        const record = rows[0];
+                        if (record.attend === 'A')
+                        {   
+                            completedQuizzes.push(
+                            { 
+                                quizId, 
+                                topic, 
+                                assigned_teacher,
+                                creation_time,
+                                total_marks: record.total_marks 
+                            });
+                        }
+                        else
+                        {
+                            pendingQuizzes.push(
+                            { 
+                                quizId,
+                                topic ,
+                                creation_time,
+                                assigned_teacher
+                            });
+                        }
+                    }
+                    else
+                    {
+                        pendingQuizzes.push(
+                        {
+                            quizId,
+                            topic ,
+                            creation_time, 
+                            assigned_teacher 
+                        });
+                    }
+                    processed++;
+                    // After all queries are processed, render the page
+                    if (processed === quizResults.length) 
+                    {
+                        res.render("student_login.ejs", 
+                        {
+                            userId,
+                            name,
+                            completedQuizzes,
+                            pendingQuizzes,
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+
+app.post("/take_quiz/:quizId",(req,res)=>{
+    const { quizId } = req.params;
+    const { userId } = req.body;
+    // Redirect to quiz taking page (to be implemented)
+});
 
 
 //logout route
