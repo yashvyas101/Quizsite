@@ -77,9 +77,6 @@ app.post("/teacher_login", (req,res) => {
     });
 });
 
-
-
-
 //login cheack routes
 //of student
 app.post("/student_login", (req,res) => {
@@ -110,6 +107,8 @@ app.get("/teacher_login/:userId",(req,res)=>
     const q = "SELECT * FROM teacher_login WHERE user_id = ?";
     const q_quizzes = "SELECT * FROM quizzes WHERE user_id = ?";
     const q_quiz_count=`SELECT COUNT(*) AS quiz_count FROM quizzes WHERE user_id = ?;`
+    const quiz_count_q=`SELECT COUNT(*) AS students_count FROM student_login ;`
+
     connection.query(q, [userId], (err, results) => {
         if(err) {
             console.log(err);
@@ -128,8 +127,14 @@ app.get("/teacher_login/:userId",(req,res)=>
                     console.error("❌ Error fetching quiz count:", err);
                     return res.status(500).send("Internal Server Error");
                 }
-                quiz_count
-                res.render("teacher_login.ejs",{ userId ,name, quizzes:quizResults, quiz_count: quiz_count[0].quiz_count  });
+                connection.query(quiz_count_q, (err, students_count) =>
+                {
+                    if (err) {
+                        console.error("❌ Error fetching student count:", err);
+                        return res.status(500).send("Internal Server Error");
+                    }
+                    res.render("teacher_login.ejs", { userId, name, quizzes: quizResults, quiz_count: quiz_count[0].quiz_count ,students_count:students_count[0].students_count});
+                });
             });
 
             
@@ -137,21 +142,22 @@ app.get("/teacher_login/:userId",(req,res)=>
     });
 });
 
-//DELETE QUIZ ROUTE  /delete_quiz/<%= quiz.quiz_id %>?_method=DELETE
-app.delete("/delete_quiz/:quizId",(req,res)=>{
-    const { quizId } = req.params;
-    const {userId} =req.body; // Get userId from query parameters
-    const deleteQuizQuery = "DELETE FROM quizzes WHERE quiz_id = ?";
-    connection.query(deleteQuizQuery, [quizId], (err, result) => {
-        if (err) {
-            console.error("❌ Error deleting quiz:", err);
-            return res.status(500).send("Internal Server Error");
-        }
-        console.log("✅ Quiz deleted successfully:", quizId);
-    });
-    res.redirect(`/teacher_login/${userId}`);
-});
 
+
+//dashboard routes fo student
+app.get("/student_login/:userId",(req,res)=>{
+    const userId = req.params.userId;
+    const q = "SELECT * FROM student_login WHERE user_id = ?";
+    connection.query(q, [userId], (err, results) => {
+        if(err) {
+            console.log(err);
+            return res.render("login_as_student.ejs", { error: "Database error!" });
+        }
+        let name=results[0].student_name;
+        res.render("student_login.ejs",{ userId ,name});
+
+    });
+});
 
 
 
@@ -177,13 +183,13 @@ app.post("/add_quiz_to_DB",(req,res)=>{
         console.log("Quiz added successfully with ID:", quiz_id);
     });
 
-    for(let i=1;i<=10;i++)
+    for(let i=0;i<=10;i++)
     {
         // Each question comes from EJS form as `questions[i][...]`
         const qData = questions[i];
         if (!qData) continue; // Skip if question missing
 
-        const quiz_questions = uuid();
+        const question_id = uuid();
         const question_text = qData.text;
         const optionA = qData.optionA;
         const optionB = qData.optionB;
@@ -193,13 +199,13 @@ app.post("/add_quiz_to_DB",(req,res)=>{
         const marks = qData.marks;
 
         const qToInsertIntoQuestionTable = `INSERT INTO quiz_questions 
-        (quiz_questions,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks)
+        (question_id,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks)
         VALUES (?,?, ?, ?, ?, ?, ?, ?, ?)`;
         
         // ✅ Use your for-loop to insert each question
         connection.query(
             qToInsertIntoQuestionTable,
-            [quiz_questions,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks],
+            [question_id,quiz_id, question_text, optionA, optionB, optionC, optionD, correct_answer, marks],
             (err, result) => {
                 if (err) {
                     console.error(`❌ Error inserting question ${i}:`, err);
@@ -211,27 +217,93 @@ app.post("/add_quiz_to_DB",(req,res)=>{
         console.log("Quiz added successfully with ID:", quiz_id);
         
     }
+
+    // ✅ Step: Create a unique result table for the quiz to track attendance and marks
+    const createQuizResultTableQuery = `
+        CREATE TABLE \`${quiz_id}\` (
+            user_id VARCHAR(50),
+            attend CHAR(1) DEFAULT NULL,    -- 'A' = Attended, NULL = Not Attended
+            total_marks INT DEFAULT NULL,   -- Out of 10, NULL = Not attempted
+            q1 INT DEFAULT NULL,            -- 0 or 1 per question
+            q2 INT DEFAULT NULL,
+            q3 INT DEFAULT NULL,
+            q4 INT DEFAULT NULL,
+            q5 INT DEFAULT NULL,
+            q6 INT DEFAULT NULL,
+            q7 INT DEFAULT NULL,
+            q8 INT DEFAULT NULL,
+            q9 INT DEFAULT NULL,
+            q10 INT DEFAULT NULL,
+            FOREIGN KEY (user_id) REFERENCES student_login(user_id)
+        );
+    `;
+
+    connection.query(createQuizResultTableQuery, (err, result) => 
+    {
+        if (err) 
+        {
+            console.error("❌ Error creating quiz result table:", err);
+        } 
+        else 
+        {
+            console.log(`✅ Result table created successfully for quiz: ${quiz_id}`);
+
+            // ✅ Step: Pre-fill with all students (attendance & marks as NULL)
+            const insertStudentsQuery = `
+                INSERT INTO \`${quiz_id}\` (user_id)
+                SELECT user_id FROM student_login;
+            `;
+
+            connection.query(insertStudentsQuery, (err2, result2) => {
+                if (err2) {
+                    console.error("❌ Error inserting students into quiz result table:", err2);
+                } else {
+                    console.log(`✅ ${result2.affectedRows} students added to quiz ${quiz_id} result table.`);
+                }
+            });
+        }
+    });
+
+
+    // Redirect back to teacher dashboard
     res.redirect(`/teacher_login/${userId}`);
 });
 
 
 
+//DELETE QUIZ ROUTE  /delete_quiz/<%= quiz.quiz_id %>?_method=DELETE
+app.delete("/delete_quiz/:quizId",(req,res)=>{
+    const { quizId } = req.params;
+    const {userId} =req.body; // Get userId from query parameters
+    const deleteQuizQuestionQuery = "DELETE FROM quiz_questions WHERE quiz_id = ?";
+    const deleteQuizQuery = "DELETE FROM quizzes WHERE quiz_id = ?";
+    // Step 1: Delete quiz questions first (foreign key constraint)
+    connection.query(deleteQuizQuestionQuery, [quizId], (err, result) => {
+        if (err) {
+            console.error("❌ Error deleting quiz questions:", err);
+            return res.status(500).send("Internal Server Error");
+        }   
+        // Step 2: Delete the quizzes TABLE itself
+        connection.query(deleteQuizQuery, [quizId], (err, result) => {
+            if (err) {
+                console.error("❌ Error deleting quiz:", err);
+                return res.status(500).send("Internal Server Error");
+            }
+            // Step 3: Drop the associated result table
+            const dropTableQuery = `DROP TABLE IF EXISTS \`${quizId}\``;
+            connection.query(dropTableQuery, (err3, result3) => {
+                if (err3) {
+                    console.error("❌ Error dropping quiz result table:", err3);
+                    return res.status(500).send("Error deleting quiz result table");
+                }
 
-
-//dashboard routes fo student
-app.get("/student_login/:userId",(req,res)=>{
-    const userId = req.params.userId;
-    const q = "SELECT * FROM student_login WHERE user_id = ?";
-    connection.query(q, [userId], (err, results) => {
-        if(err) {
-            console.log(err);
-            return res.render("login_as_student.ejs", { error: "Database error!" });
-        }
-        let name=results[0].student_name;
-        res.render("student_login.ejs",{ userId ,name});
-
+                console.log(`✅❌✅ Successfully deleted quiz ${quizId} and its result table`);
+            });
+        });
     });
+    res.redirect(`/teacher_login/${userId}`);
 });
+
 
 
 
