@@ -21,7 +21,7 @@ const connection = mysql.createConnection({
   host: 'localhost',
   user: 'root',
   database: 'quizsite',
-  password: 'YASH@2006',
+  password: '',
 });
 //check connection to database
 connection.connect((err) => 
