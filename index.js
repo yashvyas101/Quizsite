@@ -325,10 +325,16 @@ app.get("/student_login/:userId",(req,res)=>
                 name,
                 completedQuizzes,
                 pendingQuizzes,
+                totalScore: 0,
+                totalPossible: 0,
+                averageScore: 0,
+                quizzesAttempted: 0
                 });
             }
 
             let processed = 0; // To track how many queries finished
+            let totalScore = 0;
+            let quizzesAttempted = 0;
 
             // Check each quiz for attended or not 
             for(const quiz of quizResults) 
@@ -359,6 +365,8 @@ app.get("/student_login/:userId",(req,res)=>
                                 creation_time,
                                 total_marks: record.total_marks 
                             });
+                            totalScore += record.total_marks || 0;
+                            quizzesAttempted++;
                         }
                         else
                         {
@@ -385,12 +393,18 @@ app.get("/student_login/:userId",(req,res)=>
                     // After all queries are processed, render the page
                     if (processed === quizResults.length) 
                     {
+                        const totalPossible = quizzesAttempted * 10;
+                        const averageScore =totalPossible > 0 ? ((totalScore / totalPossible) * 100).toFixed(2) : 0;
                         res.render("student_login.ejs", 
                         {
                             userId,
                             name,
                             completedQuizzes,
                             pendingQuizzes,
+                             totalScore,
+                            totalPossible,
+                            averageScore,
+                            quizzesAttempted
                         });
                     }
                 });
@@ -421,52 +435,165 @@ app.get("/take_quiz/:quizId/user/:userId", (req, res) => {
     res.render("take_quiz.ejs", { quizId, userId, questions });
   });
 });
+//show result  route
+app.get("/result_of_quiz/:quizId/user/:userId", (req, res) => {
+  const { quizId, userId } = req.params;
+});
 //Handle Quiz Submission
 // Route to handle quiz submission
-app.post("/submit_quiz/:quizId/user/:userId", (req, res) => {
-  const { quizId, userId } = req.params;
-  const answers = req.body; // Contains student answers { question_id: selectedOption }
+// app.post("/submit_quiz/:quizId/user/:userId", (req, res) => { 
+//   const { quizId, userId } = req.params;
+//   const answers = req.body; // Contains student answers { question_id: selectedOption }
 
-  const getCorrectAnswersQuery = "SELECT question_id, correct_answer FROM quiz_questions WHERE quiz_id = ?";
-  connection.query(getCorrectAnswersQuery, [quizId], (err, correctRows) => {
+//   const getCorrectAnswersQuery = "SELECT question_id, correct_answer FROM quiz_questions WHERE quiz_id = ?";
+//   connection.query(getCorrectAnswersQuery, [quizId], (err, correctRows) => {
+//     if (err) {
+//       console.error("❌ Error fetching correct answers:", err);
+//       return res.status(500).send("Internal Server Error");
+//     }
+
+//     let totalMarks = 0;
+//     const marksData = {};
+
+//     // Compare answers and calculate marks
+//     correctRows.forEach((row, index) => {
+//       const studentAnswer = answers[row.question_id];
+//       if (studentAnswer && studentAnswer.toUpperCase() === row.correct_answer.toUpperCase()) {
+//         totalMarks += 1;
+//         marksData[`q${index + 1}`] = 1;
+//       } else {
+//         marksData[`q${index + 1}`] = 0;
+//       }
+//     });
+
+//     // Build the update query for quiz result table
+//     const updateQuery = `
+//       UPDATE \`${quizId}\`
+//       SET attend = 'A',
+//           total_marks = ?,
+//           ${Object.keys(marksData).map(key => `${key} = ?`).join(", ")}
+//       WHERE user_id = ?
+//     `;
+
+//     const values = [totalMarks, ...Object.values(marksData), userId];
+
+//     connection.query(updateQuery, values, (err2) => {
+//       if (err2) {
+//         console.error("❌ Error updating quiz result:", err2);
+//         return res.status(500).send("Internal Server Error");
+//       }
+
+//       console.log(`✅ Quiz submitted successfully by ${userId}, Marks: ${totalMarks}`);
+//       res.redirect(`/student_login/${userId}`);
+//     });
+//   });
+// });
+app.post("/submit_quiz/:quizId/:userId", (req, res) => {
+  const { quizId, userId } = req.params;
+  const submitted = req.body; // e.g. { "<question_id1>": "A", "<question_id2>": "C", ... }
+
+  // Extract question IDs the form sent (only keys that look like UUIDs)
+  const questionIds = Object.keys(submitted).filter(k => k && k !== '_method');
+
+  if (questionIds.length === 0) {
+    // Nothing submitted -> treat as zero attempt
+    return res.redirect(`/student_login/${userId}`);
+  }
+
+  // Query correct answers for these question_ids
+  const placeholders = questionIds.map(() => '?').join(',');
+  const fetchCorrect = `SELECT question_id, question_text, correct_answer FROM quiz_questions WHERE question_id IN (${placeholders})`;
+
+  connection.query(fetchCorrect, questionIds, (err, rows) => {
     if (err) {
       console.error("❌ Error fetching correct answers:", err);
       return res.status(500).send("Internal Server Error");
     }
 
-    let totalMarks = 0;
-    const marksData = {};
-
-    // Compare answers and calculate marks
-    correctRows.forEach((row, index) => {
-      const studentAnswer = answers[row.question_id];
-      if (studentAnswer && studentAnswer.toUpperCase() === row.correct_answer.toUpperCase()) {
-        totalMarks += 1;
-        marksData[`q${index + 1}`] = 1;
-      } else {
-        marksData[`q${index + 1}`] = 0;
-      }
+    // Build a map question_id -> correct_answer and question_text
+    const correctMap = {};
+    rows.forEach(r => {
+      correctMap[r.question_id] = {
+        correct_answer: (r.correct_answer || '').trim().toUpperCase(),
+        question_text: r.question_text
+      };
     });
 
-    // Build the update query for quiz result table
-    const updateQuery = `
-      UPDATE \`${quizId}\`
-      SET attend = 'A',
-          total_marks = ?,
-          ${Object.keys(marksData).map(key => `${key} = ?`).join(", ")}
-      WHERE user_id = ?
-    `;
+    // Evaluate answers
+    let totalMarks = 0;
+    const questionResults = []; // array of { question_id, question_text, studentAnswer, isCorrect }
 
-    const values = [totalMarks, ...Object.values(marksData), userId];
+    // We'll preserve the order as rows came back — but to show the same order as the quiz,
+    // it's better to use the order of questionIds (form order). Use that:
+    for (let i = 0; i < questionIds.length; i++) {
+      const qid = questionIds[i];
+      const studentRaw = submitted[qid] || '';
+      const studentAnswer = (studentRaw + '').trim().toUpperCase();
+      const correctEntry = correctMap[qid];
+
+      const isCorrect = correctEntry && studentAnswer === correctEntry.correct_answer;
+      if (isCorrect) totalMarks += 1;
+
+      questionResults.push({
+        question_id: qid,
+        question_text: correctEntry ? correctEntry.question_text : "(Question not found)",
+        studentAnswer,
+        correctAnswer: correctEntry ? correctEntry.correct_answer : null,
+        correct: !!isCorrect
+      });
+    }
+
+    // Update the quiz result table for this student
+    // Build q1..q10 updates based on questionResults order: assign according to index+1
+    // If your schema expects q1..q10 explicitly, we must map them. We'll set q1..qN accordingly.
+    const qUpdates = {};
+    for (let i = 0; i < questionResults.length && i < 10; i++) {
+      qUpdates[`q${i+1}`] = questionResults[i].correct ? 1 : 0;
+    }
+    // If less than 10, remaining q's left as NULL (no change)
+    // Build SET clause
+    const setParts = ["attend = 'A'", "total_marks = ?"];
+    const values = [totalMarks];
+    Object.keys(qUpdates).forEach(k => {
+      setParts.push(`${k} = ?`);
+      values.push(qUpdates[k]);
+    });
+    values.push(userId); // for WHERE
+
+    const updateQuery = `UPDATE \`${quizId}\` SET ${setParts.join(', ')} WHERE user_id = ?`;
 
     connection.query(updateQuery, values, (err2) => {
       if (err2) {
-        console.error("❌ Error updating quiz result:", err2);
+        console.error("❌ Error updating quiz result table:", err2);
         return res.status(500).send("Internal Server Error");
       }
 
-      console.log(`✅ Quiz submitted successfully by ${userId}, Marks: ${totalMarks}`);
-      res.redirect(`/student_login/${userId}`);
+      // Fetch student name and teacher ID for result page display
+      connection.query("SELECT student_name FROM student_login WHERE user_id = ?", [userId], (err3, srows) => {
+        if (err3) {
+          console.error("❌ Error fetching student name:", err3);
+          return res.status(500).send("Internal Server Error");
+        }
+        const studentName = srows[0] ? srows[0].student_name : '';
+
+        connection.query("SELECT user_id AS teacherId FROM quizzes WHERE quiz_id = ?", [quizId], (err4, trows) => {
+          if (err4) {
+            console.error("❌ Error fetching teacher id:", err4);
+            return res.status(500).send("Internal Server Error");
+          }
+          const teacherId = trows[0] ? trows[0].teacherId : '';
+
+          // Render result page with full details (ordered by form submission order)
+          res.render("result_of_quiz.ejs", {
+            userId,
+            studentName,
+            quizId,
+            teacherId,
+            totalMarks,
+            questionResults
+          });
+        });
+      });
     });
   });
 });

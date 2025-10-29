@@ -26,22 +26,44 @@
   </div>
 
   <div class="main">
-    <form id="quizForm" action="/submit_quiz/<%= quizId %>/user/<%= userId %>" method="POST">
-      <% questions.forEach((q, index) => { %>
-        <div class="question-card question" id="q<%= index %>" style="<%= index === 0 ? '' : 'display:none' %>">
-          <h5>Question <%= index + 1 %>:</h5>
-          <p><%= q.question_text %></p>
-          <div class="form-check"><input type="radio" name="<%= q.question_id %>" value="A" class="form-check-input"> A) <%= q.optionA %></div>
-          <div class="form-check"><input type="radio" name="<%= q.question_id %>" value="B" class="form-check-input"> B) <%= q.optionB %></div>
-          <div class="form-check"><input type="radio" name="<%= q.question_id %>" value="C" class="form-check-input"> C) <%= q.optionC %></div>
-          <div class="form-check"><input type="radio" name="<%= q.question_id %>" value="D" class="form-check-input"> D) <%= q.optionD %></div>
-          <div class="mt-3 d-flex justify-content-between">
-            <button type="button" class="btn btn-secondary" onclick="prevQuestion(<%= index %>)" <%= index === 0 ? 'disabled' : '' %>>Previous</button>
-            <button type="button" class="btn btn-primary" onclick="nextQuestion(<%= index %>)" <%= index === questions.length - 1 ? 'disabled' : '' %>>Next</button>
-          </div>
-        </div>
-      <% }) %>
-    </form>
+    <% /* questions is the array you passed from GET /take_quiz */ %>
+<form id="quizForm" action="/submit_quiz/<%= quizId %>/<%= userId %>" method="POST">
+  <% questions.forEach((q, index) => { %>
+    <div class="question-card question" id="q<%= index %>" style="<%= index === 0 ? '' : 'display:none' %>">
+      <h5>Question <%= index + 1 %>:</h5>
+      <p><%= q.question_text %></p>
+
+      <!-- IMPORTANT: name is the actual question_id -->
+      <div class="form-check">
+        <input type="radio" id="q_<%= q.question_id %>_A" name="<%= q.question_id %>" value="A" class="form-check-input">
+        <label for="q_<%= q.question_id %>_A" class="form-check-label">A) <%= q.optionA %></label>
+      </div>
+      <div class="form-check">
+        <input type="radio" id="q_<%= q.question_id %>_B" name="<%= q.question_id %>" value="B" class="form-check-input">
+        <label for="q_<%= q.question_id %>_B" class="form-check-label">B) <%= q.optionB %></label>
+      </div>
+      <div class="form-check">
+        <input type="radio" id="q_<%= q.question_id %>_C" name="<%= q.question_id %>" value="C" class="form-check-input">
+        <label for="q_<%= q.question_id %>_C" class="form-check-label">C) <%= q.optionC %></label>
+      </div>
+      <div class="form-check">
+        <input type="radio" id="q_<%= q.question_id %>_D" name="<%= q.question_id %>" value="D" class="form-check-input">
+        <label for="q_<%= q.question_id %>_D" class="form-check-label">D) <%= q.optionD %></label>
+      </div>
+
+      <div class="mt-3 d-flex justify-content-between">
+        <button type="button" class="btn btn-secondary" onclick="prevQuestion(<%= index %>)" <%= index === 0 ? 'disabled' : '' %>>Previous</button>
+        <button type="button" class="btn btn-primary" onclick="nextQuestion(<%= index %>)" <%= index === questions.length - 1 ? 'disabled' : '' %>>Next</button>
+      </div>
+    </div>
+  <% }) %>
+
+  <!-- final submit -->
+  <div class="mt-4 text-center">
+    <button type="submit" class="btn btn-success">Submit Quiz</button>
+  </div>
+</form>
+
   </div>
 
   <script>

@@ -95,21 +95,22 @@
   </style>
 </head>
 
+              
 <body>
   <!-- Sidebar -->
   <aside class="sidebar">
     <h4><i class="bi bi-person-circle me-2"></i>Student Panel</h4>
     <div class="stat">
-      <h6>Quizzes Attempted:</h6>
-      <p class="fs-5 fw-semibold">1</p>
+      <h6>Quizzes Attempted :</h6>
+      <p class="fs-5 fw-semibold"><%= quizzesAttempted %></p>
     </div>
     <div class="stat">
-      <h6>Total Score:</h6>
-      <p class="fs-5 fw-semibold">85 / 100</p>
+      <h6>Total Score :</h6>
+      <p class="fs-5 fw-semibold"><%= totalScore %> / <%=totalPossible%></p>
     </div>
     <div class="stat">
-      <h6>Average Score:</h6>
-      <p class="fs-6 fw-semibold">85%</p>
+      <h6>Average Score :</h6>
+      <p class="fs-6 fw-semibold"><%= averageScore %>%</p>
     </div>
     <hr>
     <p class="text-light small">View your progress and quiz details here.</p>

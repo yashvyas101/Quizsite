@@ -1,0 +1,135 @@
+CREATE DATABASE quizsite;
+
+
+USE quizsite;
+
+CREATE TABLE student_login (
+    student_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) UNIQUE NOT NULL,
+    student_name VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL
+);
+
+
+CREATE TABLE teacher_login (
+    teacher_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) UNIQUE NOT NULL,
+    teacher_name VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL
+);
+
+
+
+
+INSERT INTO student_login (user_id, student_name, password)
+VALUES
+('stu001', 'Aarav Mehta', 'pass123'),
+('stu002', 'Isha Sharma', 'pass234'),
+('stu003', 'Rohan Patel', 'pass345'),
+('stu004', 'Priya Deshmukh', 'pass456'),
+('stu005', 'Karan Gupta', 'pass567'),
+('stu006', 'Neha Reddy', 'pass678'),
+('stu007', 'Ananya Singh', 'pass789'),
+('stu008', 'Aditya Nair', 'pass890'),
+('stu009', 'Sanya Verma', 'pass901'),
+('stu010', 'Rahul Chatterjee', 'pass012');
+
+
+INSERT INTO teacher_login (user_id, teacher_name, password)
+VALUES
+('teach001', 'Dr. Kavita Joshi', 'tpass123'),
+('teach002', 'Mr. Arvind Menon', 'tpass234'),
+('teach003', 'Mrs. Reema Bhattacharya', 'tpass345');
+
+
+SELECT * FROM student_login;
+SELECT * FROM teacher_login;
+
+
+
+-- Table for quizzes
+CREATE TABLE quizzes (
+    quiz_id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    creation_time DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES teacher_login(user_id)
+);
+
+
+
+
+-- Table for quiz questions
+CREATE TABLE quiz_questions (
+    question_id VARCHAR(50) PRIMARY KEY,
+    quiz_id VARCHAR(50) NOT NULL,
+    question_text TEXT NOT NULL,
+    optionA VARCHAR(255) NOT NULL,
+    optionB VARCHAR(255) NOT NULL,
+    optionC VARCHAR(255) NOT NULL,
+    optionD VARCHAR(255) NOT NULL,
+    correct_answer CHAR(1) NOT NULL,
+    marks INT DEFAULT 1,
+    FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id)
+);
+ 
+-- DELETE FROM quizzes WHERE quiz_id = 'c34b5087-73ad-46de-bc66-853b9697f1ab';
+--  deleteQuizQuery  "DELETE FROM quizzes WHERE quiz_id = ?";
+
+CREATE TABLE `quiz_id_here` (
+    user_id VARCHAR(50),
+    attend CHAR(1) DEFAULT NULL,         -- 'A' = Attended, NULL = Not Attended
+    total_marks INT DEFAULT NULL,        -- Out of 10, NULL = Not attempted
+    q1 INT DEFAULT NULL,                 -- 0 or 1 per question
+    q2 INT DEFAULT NULL,
+    q3 INT DEFAULT NULL,
+    q4 INT DEFAULT NULL,
+    q5 INT DEFAULT NULL,
+    q6 INT DEFAULT NULL,
+    q7 INT DEFAULT NULL,
+    q8 INT DEFAULT NULL,
+    q9 INT DEFAULT NULL,
+    q10 INT DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES student_login(user_id)
+);
+
+
+SELECT * FROM quiz_questions WHERE quiz_id = "d557345b-036e-4aec-82c8-0cd1c131875c";
+
+
+select * FROM `13844ebf-f650-410c-b26c-45348770fd5d` ;
+drop table `ad2e3273-d0d0-4041-abbd-483fc2e4fafb  `;
+
+SELECT COUNT(*) AS quiz_count
+FROM quizzes
+WHERE user_id = 'teach001';
+
+SELECT COUNT(*) AS students_count 
+FROM student_login ;
+
+UPDATE `13844ebf-f650-410c-b26c-45348770fd5d`
+SET 
+  attend = 'A',
+  q1 = 1,
+  q2 = 1,
+  q3 = 1,
+  q4 = 1,
+  q5 = 1,
+  q6 = 1,
+  q7 = 1,
+  q8 = 1,
+  q9 = 1,
+  q10 = 0,
+  total_marks = 9
+WHERE user_id = 'STU001';
+
+
+
+ 
+ 
+SELECT * FROM quizzes;
+
+SELECT * FROM quiz_questions;
+
+
+SELECT * FROM quizzes WHERE user_id = "teach001";
