@@ -147,7 +147,7 @@
               <p class="quiz-status completed">
                 <i class="bi bi-check-circle-fill me-1"></i>Completed
               </p>
-              <p><span class="score-badge">Score: <%= quiz.marks %> / 10</span></p>
+              <p><span class="score-badge">Score: <%= quiz.total_marks %> / 10</span></p>
             </div>
           </div>
         <% }) %>
@@ -170,9 +170,10 @@
                 <p class="quiz-status pending">
                   <i class="bi bi-x-circle-fill me-1"></i>Not Attempted
                 </p>
-                <form action="/take_quiz/<%= quiz.quizId %>" method="get">
+                <form action="/take_quiz/<%= quiz.quizId %>/user/<%= userId %>" method="get">
                   <button class="btn btn-sm btn-primary mt-2">Take Quiz</button>
                 </form>
+
               </div>
             </div>
           <% }) %>

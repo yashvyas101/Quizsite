@@ -399,11 +399,80 @@ app.get("/student_login/:userId",(req,res)=>
     });
 });
 
-app.post("/take_quiz/:quizId",(req,res)=>{
-    const { quizId } = req.params;
-    const { userId } = req.body;
-    // Redirect to quiz taking page (to be implemented)
+
+//Show Quiz Page
+// Route to show the quiz page TO STUDENT
+app.get("/take_quiz/:quizId/user/:userId", (req, res) => {
+  const { quizId, userId } = req.params;
+
+  // Fetch quiz questions
+  const fetchQuestionsQuery = "SELECT * FROM quiz_questions WHERE quiz_id = ?";
+  connection.query(fetchQuestionsQuery, [quizId], (err, questions) => {
+    if (err) {
+      console.error("❌ Error fetching quiz questions:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    if (questions.length === 0) {
+      return res.send("No questions found for this quiz!");
+    }
+
+    // Render the quiz page with fetched questions
+    res.render("take_quiz.ejs", { quizId, userId, questions });
+  });
 });
+//Handle Quiz Submission
+// Route to handle quiz submission
+app.post("/submit_quiz/:quizId/user/:userId", (req, res) => {
+  const { quizId, userId } = req.params;
+  const answers = req.body; // Contains student answers { question_id: selectedOption }
+
+  const getCorrectAnswersQuery = "SELECT question_id, correct_answer FROM quiz_questions WHERE quiz_id = ?";
+  connection.query(getCorrectAnswersQuery, [quizId], (err, correctRows) => {
+    if (err) {
+      console.error("❌ Error fetching correct answers:", err);
+      return res.status(500).send("Internal Server Error");
+    }
+
+    let totalMarks = 0;
+    const marksData = {};
+
+    // Compare answers and calculate marks
+    correctRows.forEach((row, index) => {
+      const studentAnswer = answers[row.question_id];
+      if (studentAnswer && studentAnswer.toUpperCase() === row.correct_answer.toUpperCase()) {
+        totalMarks += 1;
+        marksData[`q${index + 1}`] = 1;
+      } else {
+        marksData[`q${index + 1}`] = 0;
+      }
+    });
+
+    // Build the update query for quiz result table
+    const updateQuery = `
+      UPDATE \`${quizId}\`
+      SET attend = 'A',
+          total_marks = ?,
+          ${Object.keys(marksData).map(key => `${key} = ?`).join(", ")}
+      WHERE user_id = ?
+    `;
+
+    const values = [totalMarks, ...Object.values(marksData), userId];
+
+    connection.query(updateQuery, values, (err2) => {
+      if (err2) {
+        console.error("❌ Error updating quiz result:", err2);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      console.log(`✅ Quiz submitted successfully by ${userId}, Marks: ${totalMarks}`);
+      res.redirect(`/student_login/${userId}`);
+    });
+  });
+});
+
+
+
 
 
 //logout route
